@@ -13,3 +13,7 @@ variable "egress_routes" {
 variable "vpc_id" {
     type = string
 }
+
+variable "tags" {
+  type = map(string)
+}

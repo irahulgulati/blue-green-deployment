@@ -1,0 +1,36 @@
+{
+    "variables":{
+        "access_key": "{{env `ACCESS_KEY`}}",
+        "secret_key": "{{env `SECRET_KEY`}}"
+    },
+    "builders": [
+        {
+            "type": "amazon-ebs",
+            "access_key": "{{user `access_key`}}",
+            "secret_key": "{{user `secret_key`}}",
+            "region": "ap-northeast-1",
+            "ami_name": "packerApacheGreenAMI",
+            "source_ami": "ami-0ef85cf6e604e5650",
+            "instance_type": "t2.micro",
+            "ssh_username": "ubuntu",
+            "tags": {
+                "environment": "dev",
+                "purpose": "packer-testing"
+            },
+            "snapshot_tags": {
+                "Name": "Packer_apache_ami_snapshot"
+            }
+        }
+    ],
+    "provisioners": [
+        {
+            "type":"shell",
+            "script": "../scripts/ansible.sh"
+        },
+        {
+            "type": "ansible-local",
+            "playbook_file": "../ansible/apache_setup.yaml",
+            "playbook_dir":"../ansible"
+        }
+    ]
+}

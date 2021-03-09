@@ -1,0 +1,19 @@
+---
+- name: install and configure Apache
+  hosts: 127.0.0.1
+  connection: local
+
+  tasks:
+  - name : "install Apache"
+    become: yes
+    apt:
+      name : apache2
+      state: latest
+  - name: "enable apache"
+    systemd:
+      name: apache2
+      enabled: yes
+      state: started
+  - name: 
+    shell: echo "Hello World from GREEN WORLD!!!" > /var/www/html/index.html
+    become: yes
