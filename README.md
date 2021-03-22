@@ -40,4 +40,8 @@
     -   make build
     Note: Given that you have installed Packer, Terraform and configured the environment keys as well as aws cli.
 
+## System Design for whole provisioned infrastructure
+
+![Infra Design](https://github.com/irahulgulati/blue-green-deployment/blob/master/bluegreen.png)
+
 
