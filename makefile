@@ -17,22 +17,22 @@ pkbuild:
 	&& packer build nginx_web_server.json \
 	&& packer build app_server.json
 
-tfplan:
+tfplan-blue:
 	@echo "planning infrastructure..."
-	@cd terraform \
+	@cd terraform/$(deployment_path) \
 	&& terraform plan
 
 tfapply:
 	@echo "applying infrastructure..."
-	@cd terraform \
+	@cd terraform/$(deployment_path) \
 	&& terraform apply -auto-approve
 
 tfdestroy:
 	@echo "destroying infrastructure..."
-	@cd terraform \
+	@cd terraform/$(deployment_path) \
 	&& terraform destroy -auto-approve
 
 tfinit:
 	@echo "initalizing terraform..."
-	@cd terraform \
+	@cd terraform/$(deployment_path) \
 	&& terraform init
