@@ -25,13 +25,17 @@
     -   packer build app_server.json
     Note: This process will take time as it will provision a temporary EC2 instance, install Ansible on it, use Ansible to configure the image and then tag that image and store it in AWS.
 7.  (Needed by Terraform) Make sure that your aws cli is installed and is configured with the credentials using "aws configure" command.
-8.  Change your directory to terraform and run below command to initiate the terraform:
+8.  Change the directory to respective deployment and run following commands, usually the order should be like below for first time.
+    -   common-blue-green
+    -   blue(for live production infrastructure)
+    -   green(for the latest updated version of app and/or infrastructure, when needed)
+9.  Change your directory to terraform and run below command to initiate the terraform:
     -   terraform init
-9.  Run below command to plan your infrastructure:
+10. Run below command to plan your infrastructure:
     -   terraform plan
-10.  After planning is successful, run the below command to provision the infrastructre:
+11.  After planning is successful, run the below command to provision the infrastructre:
     -   terraform apply
-11. If you want to delete all the provisioned infrastructure run below command:
+12. If you want to delete all the provisioned infrastructure run below command:
     -   terraform destroy
 
 #### Note: This terraform configuration saves the terraform state to a remote s3 bucket. Make sure to change the name of bucket in ~/terraform/main.tf file and as well as make sure that you have IAM policy assigned to access the S3/bucket or cross check the bucket policies.
