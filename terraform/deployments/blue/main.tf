@@ -19,6 +19,35 @@ locals {
   }
 }
 
+data "aws_vpc" "vpc" {
+    tags = {
+        Application = "Blue"
+    }
+}
+
+data "aws_subnet" "public_lb_subnets_1" {
+  tags = {
+      Application = "Blue"
+      LB_Type     = "External"
+      Count       = "1"
+  }
+}
+
+data "aws_subnet" "public_lb_subnets_2" {
+  tags = {
+      Application = "Blue"
+      LB_Type     = "External"
+      Count       = "2"
+  }
+}
+
+data "aws_security_group" "public_lb_sg" {
+
+    tags = {
+        Application = "Blue"
+        LB_Type     = "External"
+    }
+}
 
 // /*
 //   vpc module that creates
@@ -31,7 +60,7 @@ module "public_lb_tg" {
   name     = "public-lb-1-tg"
   port     = 80
   protocol = "HTTP"
-  vpc_id   = module.vpc.vpc.id
+  vpc_id   = data.aws_vpc.vpc.id
 }
 
 module "public_lb_1" {
@@ -39,8 +68,8 @@ module "public_lb_1" {
   name               = "public-lb-1"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [module.lb_public_sg_1.sg.id]
-  subnet_id          = [module.lb_public_subnet_1.subnet.id, module.lb_public_subnet_2.subnet.id]
+  security_groups    = [data.aws_security_group.public_lb_sg.id]
+  subnet_id          = [data.aws_subnet.public_lb_subnets_1.id, data.aws_subnet.public_lb_subnets_2.id]
 
   enable_deletion_protection = false
 
@@ -58,12 +87,35 @@ resource "aws_lb_listener" "lb_endpoint_1" {
   }
 }
 
+data "aws_subnet" "private_lb_subnets_1" {
+    tags = {
+        Application = "Blue"
+        LB_Type     = "Internal"
+        Count       = "1"
+    }
+}
+
+data "aws_subnet" "private_lb_subnets_2" {
+    tags = {
+        Application = "Blue"
+        LB_Type     = "Internal"
+        Count       = "2"
+    }
+}
+
+data "aws_security_group" "private_lb_sg" {
+    tags = {
+        Application = "Blue"
+        LB_Type     = "Internal"
+    }
+}
+
 module "private_lb_tg" {
   source   = "../../modules/target_groups"
   name     = "private-lb-1-tg"
   port     = 80
   protocol = "HTTP"
-  vpc_id   = module.vpc.vpc.id
+  vpc_id   = data.aws_vpc.vpc.id
 }
 
 module "private_lb_1" {
@@ -71,8 +123,8 @@ module "private_lb_1" {
   name               = "private-lb-1"
   internal           = true
   load_balancer_type = "application"
-  security_groups    = [module.lb_private_sg_1.sg.id]
-  subnet_id          = [module.lb_private_subnet.subnet.id, module.lb_private_subnet_2.subnet.id]
+  security_groups    = [data.aws_security_group.private_lb_sg.id]
+  subnet_id          = [data.aws_subnet.private_lb_subnets_1.id, data.aws_subnet.private_lb_subnets_2.id]
 
   enable_deletion_protection = false
 
@@ -98,7 +150,7 @@ data "aws_ami" "nginx_ami" {
     values = ["packerAMI"]
   }
 
-  owners = ["345117372609"]
+  owners = ["Enter your account owner id"]
 }
 
 data "aws_ami" "app_server_ami" {
@@ -109,7 +161,16 @@ data "aws_ami" "app_server_ami" {
     values = ["packerApacheAMI"]
   }
 
-  owners = ["345117372609"]
+  owners = ["Enter your account owner id"]
+}
+
+data "aws_security_group" "nginx_servers_sg" {
+  count = 1
+    tags = {
+        Application = "Blue"
+        Type      = "NginxServers",
+        Count       = "1"
+    }
 }
 
 module "nginx_public_launch_template" {
@@ -119,7 +180,7 @@ module "nginx_public_launch_template" {
   instance_type      = "t2.micro"
   shutdown_behavior  = "terminate"
   key_name           = "tf-practice-aws"
-  security_groups_id = [module.webserver_private_sg_1.sg.id]
+  security_groups_id = [data.aws_security_group.nginx_servers_sg[0].id]
   depends_on = [
     module.private_lb_1
   ]
@@ -127,6 +188,22 @@ module "nginx_public_launch_template" {
     lb_dns_name : module.private_lb_1.lb.dns_name
     }
   ))
+}
+
+data "aws_subnet" "nginx_servers_subnets_1" {
+    tags = {
+        Application = "Blue"
+        Type     = "NginxServers"
+        Count     = "1"
+    }
+}
+
+data "aws_subnet" "nginx_servers_subnets_2" {
+    tags = {
+        Application = "Blue"
+        Type     = "NginxServers"
+        Count     = "2"
+    }
 }
 
 module "nginx-private_asg-1" {
@@ -137,9 +214,16 @@ module "nginx-private_asg-1" {
   health_check_type  = "ELB"
   desired_capacity   = 2
   force_delete       = true
-  subnet_ids         = [module.nginx_private_subnet.subnet.id, module.nginx_private_subnet_2.subnet.id]
+  subnet_ids         = [data.aws_subnet.nginx_servers_subnets_1.id, data.aws_subnet.nginx_servers_subnets_2.id]
   target_group_arns  = [module.public_lb_tg.tg.arn]
   launch_template_id = module.nginx_public_launch_template.lt.id
+}
+
+data "aws_security_group" "app_servers_sg" {
+    tags = {
+        Application = "Blue"
+        "Type"      = "AppServers"
+    }
 }
 
 module "app_private_launch_template" {
@@ -149,7 +233,23 @@ module "app_private_launch_template" {
   instance_type      = "t2.micro"
   shutdown_behavior  = "terminate"
   key_name           = "tf-practice-aws"
-  security_groups_id = [module.appserver_private_sg_1.sg.id]
+  security_groups_id = [data.aws_security_group.app_servers_sg.id]
+}
+
+data "aws_subnet" "app_servers_subnets_1" {
+    tags = {
+        Application = "Blue"
+        Type     = "AppServers"
+        Count     = "1"
+    }
+}
+
+data "aws_subnet" "app_servers_subnets_2" {
+    tags = {
+        Application = "Blue"
+        Type     = "AppServers"
+        Count     = "2"
+    }
 }
 
 module "app-private_asg-1" {
@@ -160,7 +260,7 @@ module "app-private_asg-1" {
   health_check_type  = "ELB"
   desired_capacity   = 2
   force_delete       = true
-  subnet_ids         = [module.app_server_private_subnet.subnet.id, module.app_server_private_subnet_2.subnet.id]
+  subnet_ids         = [data.aws_subnet.app_servers_subnets_1.id, data.aws_subnet.app_servers_subnets_2.id]
   target_group_arns  = [module.private_lb_tg.tg.arn]
   launch_template_id = module.app_private_launch_template.lt.id
 }
